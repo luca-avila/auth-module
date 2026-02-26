@@ -1,3 +1,4 @@
+import logging
 import re
 import uuid
 from typing import Any
@@ -8,6 +9,8 @@ from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 from config import settings
 from .database import get_user_db
 from .models import User
+
+logger = logging.getLogger(__name__)
 
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
@@ -45,15 +48,15 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
 
     async def on_after_register(self, user: User, request: Request | None = None):
         """Hook called after user registration."""
-        print(f"User {user.id} has registered.")
+        logger.info("User %s has registered.", user.id)
 
     async def on_after_forgot_password(self, user: User, token: str, request: Request | None = None):
         """Hook called after password reset request."""
-        print(f"User {user.id} has forgot their password. Reset token: {token}")
+        logger.info("User %s has requested a password reset.", user.id)
 
     async def on_after_request_verify(self, user: User, token: str, request: Request | None = None):
         """Hook called after email verification request."""
-        print(f"User {user.id} has requested verification. Verification token: {token}")
+        logger.info("User %s has requested email verification.", user.id)
 
 
 async def get_user_manager(user_db: SQLAlchemyUserDatabase = Depends(get_user_db)):
