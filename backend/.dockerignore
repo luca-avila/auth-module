@@ -13,9 +13,6 @@ tests/
 pytest.ini
 .pytest_cache/
 
-# Dev dependencies
-dev-requirements.txt
-
 # Database files
 *.db
 *.sqlite
