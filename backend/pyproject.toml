@@ -1,0 +1,20 @@
+[project]
+name = "auth-module-backend"
+version = "0.1.0"
+description = "FastAPI auth backend"
+requires-python = ">=3.12"
+dependencies = [
+    "asyncpg",
+    "fastapi",
+    "fastapi-users[sqlalchemy]",
+    "pydantic-settings",
+    "uvicorn[standard]",
+]
+
+[dependency-groups]
+dev = [
+    "aiosqlite",
+    "httpx",
+    "pytest",
+    "pytest-asyncio",
+]
