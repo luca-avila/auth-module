@@ -1,8 +1,0 @@
-fastapi
-fastapi-users[sqlalchemy]
-uvicorn[standard]
-aiosqlite
-pydantic-settings
-httpx
-pytest
-pytest-asyncio
