@@ -1,5 +1,5 @@
-// Configure this for your API
-export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+// API requests go through nginx reverse proxy (same origin)
+// No need for an absolute URL — all paths are relative.
 
 export interface User {
   id: string;
@@ -20,10 +20,10 @@ function getErrorMessage(err: unknown): string {
 }
 
 export async function register(email: string, password: string): Promise<User> {
-  const res = await fetch(`${API_URL}/auth/register`, {
+  const res = await fetch("/auth/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    credentials: "include",
+    credentials: "same-origin",
     body: JSON.stringify({ email, password }),
   });
   if (!res.ok) throw new Error(getErrorMessage(await res.json()));
@@ -35,24 +35,24 @@ export async function login(email: string, password: string): Promise<void> {
   form.append("username", email);
   form.append("password", password);
   
-  const res = await fetch(`${API_URL}/auth/jwt/login`, {
+  const res = await fetch("/auth/jwt/login", {
     method: "POST",
-    credentials: "include",
+    credentials: "same-origin",
     body: form,
   });
   if (!res.ok) throw new Error(getErrorMessage(await res.json()));
 }
 
 export async function logout(): Promise<void> {
-  const res = await fetch(`${API_URL}/auth/jwt/logout`, {
+  const res = await fetch("/auth/jwt/logout", {
     method: "POST",
-    credentials: "include",
+    credentials: "same-origin",
   });
   if (!res.ok) throw new Error("Logout failed");
 }
 
 export async function getMe(): Promise<User> {
-  const res = await fetch(`${API_URL}/users/me`, { credentials: "include" });
+  const res = await fetch("/users/me", { credentials: "same-origin" });
   if (!res.ok) throw new Error("Not authenticated");
   return res.json();
 }
