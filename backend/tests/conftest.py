@@ -1,7 +1,11 @@
+import os
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+# Set SECRET_KEY before importing the app so Settings validation passes
+os.environ.setdefault("SECRET_KEY", "test-secret-key")
 
 from auth.models import Base
 from auth.database import get_async_session
