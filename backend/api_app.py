@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -7,6 +9,12 @@ from auth.database import create_db_and_tables
 from auth.setup import fastapi_users, auth_backend
 from api.protected import router as protected_router
 from config import settings
+
+logging.basicConfig(
+    level=getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO),
+    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -60,3 +68,9 @@ app.include_router(
 
 # Include app-specific routers
 app.include_router(protected_router, tags=["protected"])
+
+
+@app.get("/health", tags=["health"])
+async def health_check():
+    """Health check endpoint for Docker/orchestrator probes."""
+    return {"status": "healthy"}
