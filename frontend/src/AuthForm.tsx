@@ -1,4 +1,4 @@
-import { useState, FormEvent } from "react";
+import { useState } from "react";
 
 interface AuthFormProps {
   onLogin: (email: string, password: string) => Promise<void>;
@@ -12,7 +12,7 @@ export default function AuthForm({ onLogin, onRegister, onError }: AuthFormProps
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     try {

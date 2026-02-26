@@ -1,6 +1,7 @@
 import { useState } from "react";
 import AuthForm from "./AuthForm";
-import { login, logout, getMe, register, User } from "./api";
+import { login, logout, getMe, register } from "./api";
+import type { User } from "./api";
 import "./App.css";
 
 function App() {
