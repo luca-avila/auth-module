@@ -3,8 +3,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite+aiosqlite:///./test.db"
-    SECRET_KEY: str = "change-me-in-production"
+    SECRET_KEY: str
     ENVIRONMENT: str = "development"
+    LOG_LEVEL: str = "INFO"
     CORS_ORIGINS: list[str] = ["http://localhost:5173"]
 
     PASSWORD_MIN_LENGTH: int = 8
