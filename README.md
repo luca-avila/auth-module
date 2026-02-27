@@ -4,9 +4,9 @@ Reusable auth starter you can plug into new projects.
 
 It includes:
 - `backend`: FastAPI + fastapi-users auth API
-- `frontend`: React + Vite UI for auth flows
-- `nginx`: reverse proxy for frontend/backend
-- `docker-compose.yaml`: full local stack with PostgreSQL
+- `frontend`: React + Vite UI for auth flows (builds to static `dist/`)
+- `nginx`: sample host nginx config for static frontend + API proxy
+- `docker-compose.yaml`: backend + PostgreSQL containers (no in-compose proxy/TLS)
 
 ## Backend architecture
 
@@ -17,15 +17,52 @@ The backend uses a lightweight feature-based layout:
 - `backend/features/protected`: protected route feature (`api`, `service`, `wiring`)
 - `backend/app/api.py`: FastAPI app factory and feature router registration
 
-## Quick start (Docker, easiest)
+## Runtime architecture
+
+- Host `nginx + certbot` handles HTTPS and serves frontend static files.
+- Docker Compose runs only `backend` and `db`.
+- Host nginx proxies API routes to backend on `127.0.0.1:8002`.
+
+## Build frontend artifact (for VPS nginx)
+
+Run these from the repository root:
+
+```bash
+docker build -t auth-frontend-build ./frontend
+docker create --name auth-frontend-tmp auth-frontend-build
+docker cp auth-frontend-tmp:/out/dist ./dist
+docker rm auth-frontend-tmp
+```
+
+Deploy `./dist` to your nginx web root (example used in `nginx/nginx.conf`: `/var/www/auth-frontend/dist`).
+```bash
+sudo mkdir -p /var/www/auth-frontend
+sudo rsync -a --delete ./dist/ /var/www/auth-frontend/
+sudo chown -R www-data:www-data /var/www/auth-frontend
+```
+
+## Start backend + db
 
 1. Copy env values:
    - `cp .env.example .env`
-2. Start all services:
-   - `docker compose up --build`
-3. Open:
-   - App: `http://localhost`
-   - API docs: `http://localhost/docs`
+2. Start runtime services:
+   - `docker compose up --build -d`
+3. Check API docs:
+   - `http://127.0.0.1:8002/docs`
+
+## Host nginx + certbot setup
+
+- Use `nginx/nginx.conf` as a base server block.
+- Set `server_name` to your domain.
+- Set `root` to where you deployed `dist`.
+- Add certbot-managed TLS directives.
+- API routes proxied to backend:
+  - `/auth/`
+  - `/users/`
+  - `/health`
+  - `/protected-route`
+- SPA fallback:
+  - `try_files $uri $uri/ /index.html;`
 
 ## Backend only (local with uv)
 
