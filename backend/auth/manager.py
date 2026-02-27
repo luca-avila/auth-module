@@ -7,6 +7,7 @@ from fastapi_users import BaseUserManager, InvalidPasswordException, UUIDIDMixin
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 
 from config import settings
+from .email import send_reset_password_email, send_verify_email
 from .database import get_user_db
 from .models import User
 
@@ -49,14 +50,17 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     async def on_after_register(self, user: User, request: Request | None = None):
         """Hook called after user registration."""
         logger.info("User %s has registered.", user.id)
+        await self.request_verify(user, request)
 
     async def on_after_forgot_password(self, user: User, token: str, request: Request | None = None):
         """Hook called after password reset request."""
         logger.info("User %s has requested a password reset.", user.id)
+        await send_reset_password_email(user.email, token)
 
     async def on_after_request_verify(self, user: User, token: str, request: Request | None = None):
         """Hook called after email verification request."""
         logger.info("User %s has requested email verification.", user.id)
+        await send_verify_email(user.email, token)
 
 
 async def get_user_manager(user_db: SQLAlchemyUserDatabase = Depends(get_user_db)):
