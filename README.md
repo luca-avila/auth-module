@@ -34,6 +34,9 @@ It includes:
 - `POST /auth/register`
 - `POST /auth/jwt/login`
 - `POST /auth/jwt/logout`
+- `POST /auth/forgot-password` (sends reset email)
+- `POST /auth/request-verify-token` (sends verify email)
+- `POST /auth/verify` (verifies email with token)
 - `GET /users/me`
 - `GET /protected-route`
 
@@ -41,3 +44,5 @@ It includes:
 
 - Dependencies are managed with `uv` in `backend/pyproject.toml`.
 - Locked versions are in `backend/uv.lock` for reproducible installs.
+- Resend email is configured with: `RESEND_API_KEY`, `EMAIL_FROM`, `FRONTEND_URL`, `VERIFY_PATH`, `RESET_PASSWORD_PATH`.
+- Registration triggers a verification email automatically.

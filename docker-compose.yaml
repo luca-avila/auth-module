@@ -25,6 +25,11 @@ services:
       ENVIRONMENT: ${ENVIRONMENT:-development}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       CORS_ORIGINS: '[]'
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      VERIFY_PATH: ${VERIFY_PATH:-/verify-email}
+      RESET_PASSWORD_PATH: ${RESET_PASSWORD_PATH:-/reset-password}
     depends_on:
       db:
         condition: service_healthy

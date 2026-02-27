@@ -7,6 +7,11 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     LOG_LEVEL: str = "INFO"
     CORS_ORIGINS: list[str] = ["http://localhost:5173"]
+    FRONTEND_URL: str = "http://localhost:5173"
+    RESEND_API_KEY: str = ""
+    EMAIL_FROM: str = ""
+    VERIFY_PATH: str = "/verify-email"
+    RESET_PASSWORD_PATH: str = "/reset-password"
 
     PASSWORD_MIN_LENGTH: int = 8
     PASSWORD_REQUIRE_UPPERCASE: bool = True
