@@ -1,19 +1,18 @@
-import logging
+import time
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from core.config import settings
 from core.db import create_db_and_tables
+from core.logging import configure_logging, get_logger
 from features.auth.models import Base
 from features.auth.wiring import include_auth_routers
 from features.protected.wiring import protected_router
 
-logging.basicConfig(
-    level=getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO),
-    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-)
+configure_logging()
+logger = get_logger(__name__)
 
 
 @asynccontextmanager
@@ -36,6 +35,21 @@ def create_app() -> FastAPI:
 
     include_auth_routers(app)
     app.include_router(protected_router, tags=["protected"])
+
+    if settings.LOG_REQUESTS:
+        @app.middleware("http")
+        async def request_logging_middleware(request: Request, call_next):
+            started = time.perf_counter()
+            response = await call_next(request)
+            elapsed_ms = (time.perf_counter() - started) * 1000
+            logger.info(
+                "%s %s -> %s (%.2fms)",
+                request.method,
+                request.url.path,
+                response.status_code,
+                elapsed_ms,
+            )
+            return response
 
     @app.get("/health", tags=["health"])
     async def health_check():

@@ -54,4 +54,5 @@ The backend uses a lightweight feature-based layout:
 - Dependencies are managed with `uv` in `backend/pyproject.toml`.
 - Locked versions are in `backend/uv.lock` for reproducible installs.
 - Resend email is configured with: `RESEND_API_KEY`, `EMAIL_FROM`, `FRONTEND_URL`, `VERIFY_PATH`, `RESET_PASSWORD_PATH`.
+- Logging is configured with: `LOG_LEVEL` and `LOG_REQUESTS`.
 - Registration triggers a verification email automatically.

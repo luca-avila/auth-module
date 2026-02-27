@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     ENVIRONMENT: str = "development"
     LOG_LEVEL: str = "INFO"
+    LOG_REQUESTS: bool = True
     CORS_ORIGINS: list[str] = ["http://localhost:5173"]
     FRONTEND_URL: str = "http://localhost:5173"
     RESEND_API_KEY: str = ""
