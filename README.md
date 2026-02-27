@@ -8,6 +8,15 @@ It includes:
 - `nginx`: reverse proxy for frontend/backend
 - `docker-compose.yaml`: full local stack with PostgreSQL
 
+## Backend architecture
+
+The backend uses a lightweight feature-based layout:
+
+- `backend/core`: shared infrastructure (`config`, DB engine/session)
+- `backend/features/auth`: auth feature (`api`, `service`, `models`, `schemas`, `email`, `wiring`)
+- `backend/features/protected`: protected route feature (`api`, `service`, `wiring`)
+- `backend/app/api.py`: FastAPI app factory and feature router registration
+
 ## Quick start (Docker, easiest)
 
 1. Copy env values:
@@ -25,7 +34,7 @@ It includes:
 2. Install deps (creates `.venv`):
    - `uv sync --dev`
 3. Run API:
-   - `uv run uvicorn api_app:app --reload`
+   - `uv run uvicorn app.api:app --reload`
 4. Run tests:
    - `uv run pytest`
 

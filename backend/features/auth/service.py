@@ -2,16 +2,24 @@ import logging
 import re
 import uuid
 from typing import Any
-from fastapi import Depends, Request
-from fastapi_users import BaseUserManager, InvalidPasswordException, UUIDIDMixin
-from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 
-from config import settings
-from .email import send_reset_password_email, send_verify_email
-from .database import get_user_db
-from .models import User
+from fastapi import Depends, Request
+from fastapi_users import BaseUserManager, FastAPIUsers, InvalidPasswordException, UUIDIDMixin
+from fastapi_users.authentication import AuthenticationBackend, CookieTransport, JWTStrategy
+from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from core.config import settings
+from core.db import get_async_session
+from features.auth.email import send_reset_password_email, send_verify_email
+from features.auth.models import User
 
 logger = logging.getLogger(__name__)
+
+
+async def get_user_db(session: AsyncSession = Depends(get_async_session)):
+    """Get user database instance."""
+    yield SQLAlchemyUserDatabase(session, User)
 
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
@@ -66,3 +74,31 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
 async def get_user_manager(user_db: SQLAlchemyUserDatabase = Depends(get_user_db)):
     """Get user manager instance."""
     yield UserManager(user_db)
+
+
+cookie_transport = CookieTransport(
+    cookie_name="auth",
+    cookie_max_age=3600,
+    cookie_secure=settings.ENVIRONMENT == "production",
+    cookie_httponly=True,
+    cookie_samesite="lax",
+)
+
+
+def get_jwt_strategy() -> JWTStrategy:
+    """Get JWT strategy."""
+    return JWTStrategy(secret=settings.SECRET_KEY, lifetime_seconds=3600)
+
+
+auth_backend = AuthenticationBackend(
+    name="jwt",
+    transport=cookie_transport,
+    get_strategy=get_jwt_strategy,
+)
+
+fastapi_users = FastAPIUsers[User, uuid.UUID](
+    get_user_manager,
+    [auth_backend],
+)
+
+current_active_user = fastapi_users.current_user(active=True)

@@ -8,4 +8,5 @@ class Base(DeclarativeBase):
 
 class User(SQLAlchemyBaseUserTableUUID, Base):
     """User model for authentication."""
+
     pass

@@ -1,5 +1,6 @@
 import pytest
 from httpx import AsyncClient
+import features.auth.service as auth_service
 
 USER_EMAIL = "test@example.com"
 USER_PASSWORD = "StrongPass123!"
@@ -157,3 +158,75 @@ class TestProtectedRoute:
     async def test_protected_route_unauthenticated(self, client: AsyncClient):
         response = await client.get("/protected-route")
         assert response.status_code == 401
+
+
+# ── Email Flow Tests ────────────────────────────────────────────────
+
+
+class TestEmailFlows:
+    async def test_register_triggers_verify_email_send(self, client: AsyncClient, monkeypatch: pytest.MonkeyPatch):
+        sent_calls: list[tuple[str, str]] = []
+
+        async def fake_send_verify_email(email: str, token: str) -> None:
+            sent_calls.append((email, token))
+
+        monkeypatch.setattr(auth_service, "send_verify_email", fake_send_verify_email)
+
+        response = await register_user(client)
+        assert response.status_code == 201
+        assert len(sent_calls) == 1
+        assert sent_calls[0][0] == USER_EMAIL
+        assert sent_calls[0][1]
+
+    async def test_request_verify_token_sends_email_for_existing_user(
+        self, client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+    ):
+        sent_calls: list[tuple[str, str]] = []
+
+        async def fake_send_verify_email(email: str, token: str) -> None:
+            sent_calls.append((email, token))
+
+        monkeypatch.setattr(auth_service, "send_verify_email", fake_send_verify_email)
+
+        register_response = await register_user(client)
+        assert register_response.status_code == 201
+
+        sent_calls.clear()
+        response = await client.post("/auth/request-verify-token", json={"email": USER_EMAIL})
+        assert response.status_code in (200, 202)
+        assert len(sent_calls) == 1
+        assert sent_calls[0][0] == USER_EMAIL
+        assert sent_calls[0][1]
+
+    async def test_forgot_password_sends_email_for_existing_user(
+        self, client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+    ):
+        sent_calls: list[tuple[str, str]] = []
+
+        async def fake_send_reset_password_email(email: str, token: str) -> None:
+            sent_calls.append((email, token))
+
+        monkeypatch.setattr(auth_service, "send_reset_password_email", fake_send_reset_password_email)
+
+        register_response = await register_user(client)
+        assert register_response.status_code == 201
+
+        response = await client.post("/auth/forgot-password", json={"email": USER_EMAIL})
+        assert response.status_code in (200, 202)
+        assert len(sent_calls) == 1
+        assert sent_calls[0][0] == USER_EMAIL
+        assert sent_calls[0][1]
+
+    async def test_forgot_password_nonexistent_user_does_not_send_email(
+        self, client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+    ):
+        sent_calls: list[tuple[str, str]] = []
+
+        async def fake_send_reset_password_email(email: str, token: str) -> None:
+            sent_calls.append((email, token))
+
+        monkeypatch.setattr(auth_service, "send_reset_password_email", fake_send_reset_password_email)
+
+        response = await client.post("/auth/forgot-password", json={"email": "missing@example.com"})
+        assert response.status_code in (200, 202)
+        assert sent_calls == []

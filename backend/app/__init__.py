@@ -1,2 +1,1 @@
-# App package - contains shared app code
-
+"""App package - application composition and startup wiring."""

@@ -5,7 +5,7 @@ from urllib import request
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 
-from config import settings
+from core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -27,12 +27,14 @@ async def _send_email(*, to_email: str, subject: str, html: str) -> None:
         logger.warning("EMAIL_FROM is not set. Skipping email send.")
         return
 
-    payload = json.dumps({
-        "from": settings.EMAIL_FROM,
-        "to": [to_email],
-        "subject": subject,
-        "html": html,
-    }).encode("utf-8")
+    payload = json.dumps(
+        {
+            "from": settings.EMAIL_FROM,
+            "to": [to_email],
+            "subject": subject,
+            "html": html,
+        }
+    ).encode("utf-8")
     headers = {
         "Authorization": f"Bearer {settings.RESEND_API_KEY}",
         "Content-Type": "application/json",
