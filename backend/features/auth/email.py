@@ -3,7 +3,7 @@ import json
 import logging
 from urllib import request
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit, urlunsplit
 
 from core.config import settings
 
@@ -12,8 +12,28 @@ logger = logging.getLogger(__name__)
 RESEND_API_URL = "https://api.resend.com/emails"
 
 
+def _normalize_frontend_base_url(raw_url: str) -> str:
+    """Return a validated base frontend URL without query/fragment."""
+    value = raw_url.strip()
+
+    # Common misconfiguration: protocol accidentally repeated.
+    for scheme in ("https://", "http://"):
+        duplicated = f"{scheme}{scheme}"
+        if value.startswith(duplicated):
+            value = value[len(scheme) :]
+
+    parts = urlsplit(value)
+    if parts.scheme not in {"http", "https"} or not parts.netloc:
+        raise ValueError(
+            "FRONTEND_URL must be an absolute http/https URL "
+            f"(got: {raw_url!r})"
+        )
+
+    return urlunsplit((parts.scheme, parts.netloc, parts.path.rstrip("/"), "", ""))
+
+
 def _build_action_url(path: str, token: str) -> str:
-    base = settings.FRONTEND_URL.rstrip("/")
+    base = _normalize_frontend_base_url(settings.FRONTEND_URL)
     route = path if path.startswith("/") else f"/{path}"
     return f"{base}{route}?{urlencode({'token': token})}"
 
@@ -53,7 +73,12 @@ async def _send_email(*, to_email: str, subject: str, html: str) -> None:
 
 
 async def send_verify_email(to_email: str, token: str) -> None:
-    verify_url = _build_action_url(settings.VERIFY_PATH, token)
+    try:
+        verify_url = _build_action_url(settings.VERIFY_PATH, token)
+    except ValueError as exc:
+        logger.error("Invalid verification URL config: %s", exc)
+        return
+
     await _send_email(
         to_email=to_email,
         subject="Verify your email",
@@ -65,7 +90,12 @@ async def send_verify_email(to_email: str, token: str) -> None:
 
 
 async def send_reset_password_email(to_email: str, token: str) -> None:
-    reset_url = _build_action_url(settings.RESET_PASSWORD_PATH, token)
+    try:
+        reset_url = _build_action_url(settings.RESET_PASSWORD_PATH, token)
+    except ValueError as exc:
+        logger.error("Invalid reset-password URL config: %s", exc)
+        return
+
     await _send_email(
         to_email=to_email,
         subject="Reset your password",
