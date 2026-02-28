@@ -9,6 +9,22 @@ export interface User {
   is_superuser: boolean;
 }
 
+async function readResponseBody(res: Response): Promise<unknown> {
+  const contentType = res.headers.get("content-type") ?? "";
+  if (contentType.includes("application/json")) {
+    return res.json();
+  }
+
+  const text = await res.text();
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
 function getErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
   if (typeof err === "object" && err !== null && "detail" in err) {
@@ -19,6 +35,14 @@ function getErrorMessage(err: unknown): string {
   return "Something went wrong";
 }
 
+async function buildHttpError(res: Response): Promise<Error> {
+  const payload = await readResponseBody(res);
+  const message =
+    getErrorMessage(payload) ||
+    `Request failed (${res.status} ${res.statusText})`;
+  return new Error(message);
+}
+
 export async function register(email: string, password: string): Promise<User> {
   const res = await fetch("/auth/register", {
     method: "POST",
@@ -26,8 +50,14 @@ export async function register(email: string, password: string): Promise<User> {
     credentials: "same-origin",
     body: JSON.stringify({ email, password }),
   });
-  if (!res.ok) throw new Error(getErrorMessage(await res.json()));
-  return res.json();
+  if (!res.ok) throw await buildHttpError(res);
+
+  const payload = await readResponseBody(res);
+  if (typeof payload === "object" && payload !== null && "email" in payload) {
+    return payload as User;
+  }
+
+  throw new Error("Register response was not valid JSON");
 }
 
 export async function login(email: string, password: string): Promise<void> {
@@ -40,7 +70,7 @@ export async function login(email: string, password: string): Promise<void> {
     credentials: "same-origin",
     body: form,
   });
-  if (!res.ok) throw new Error(getErrorMessage(await res.json()));
+  if (!res.ok) throw await buildHttpError(res);
 }
 
 export async function logout(): Promise<void> {
@@ -54,5 +84,11 @@ export async function logout(): Promise<void> {
 export async function getMe(): Promise<User> {
   const res = await fetch("/users/me", { credentials: "same-origin" });
   if (!res.ok) throw new Error("Not authenticated");
-  return res.json();
+
+  const payload = await readResponseBody(res);
+  if (typeof payload === "object" && payload !== null && "email" in payload) {
+    return payload as User;
+  }
+
+  throw new Error("Profile response was not valid JSON");
 }
