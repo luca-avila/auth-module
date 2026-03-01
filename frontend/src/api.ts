@@ -92,3 +92,30 @@ export async function getMe(): Promise<User> {
 
   throw new Error("Profile response was not valid JSON");
 }
+
+export async function verifyEmailToken(token: string): Promise<User> {
+  const res = await fetch("/auth/verify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify({ token }),
+  });
+  if (!res.ok) throw await buildHttpError(res);
+
+  const payload = await readResponseBody(res);
+  if (typeof payload === "object" && payload !== null && "email" in payload) {
+    return payload as User;
+  }
+
+  throw new Error("Verify response was not valid JSON");
+}
+
+export async function resetPassword(token: string, password: string): Promise<void> {
+  const res = await fetch("/auth/reset-password", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify({ token, password }),
+  });
+  if (!res.ok) throw await buildHttpError(res);
+}
