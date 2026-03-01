@@ -12,6 +12,27 @@ logger = logging.getLogger(__name__)
 RESEND_API_URL = "https://api.resend.com/emails"
 
 
+def _extract_resend_error_detail(raw_body: str) -> str:
+    if not raw_body:
+        return ""
+    try:
+        payload = json.loads(raw_body)
+    except json.JSONDecodeError:
+        return raw_body
+
+    # Resend-style error payloads usually include message/name fields.
+    if isinstance(payload, dict):
+        message = payload.get("message")
+        name = payload.get("name")
+        if isinstance(message, str) and isinstance(name, str):
+            return f"{name}: {message}"
+        if isinstance(message, str):
+            return message
+        if isinstance(name, str):
+            return name
+    return raw_body
+
+
 def _normalize_frontend_base_url(raw_url: str) -> str:
     """Return a validated base frontend URL without query/fragment."""
     value = raw_url.strip()
@@ -58,6 +79,8 @@ async def _send_email(*, to_email: str, subject: str, html: str) -> None:
     headers = {
         "Authorization": f"Bearer {settings.RESEND_API_KEY}",
         "Content-Type": "application/json",
+        "Accept": "application/json",
+        "User-Agent": "auth-module/1.0 (+https://luca-dev.online)",
     }
 
     req = request.Request(RESEND_API_URL, data=payload, headers=headers, method="POST")
@@ -67,9 +90,26 @@ async def _send_email(*, to_email: str, subject: str, html: str) -> None:
         logger.info("Email sent to %s via Resend.", to_email)
     except HTTPError as exc:
         body = exc.read().decode("utf-8", errors="ignore")
-        logger.error("Failed sending email via Resend: %s %s", exc.code, body)
+        request_id = exc.headers.get("x-request-id", "") if exc.headers else ""
+        detail = _extract_resend_error_detail(body)
+        logger.error(
+            "Failed sending email via Resend: status=%s reason=%s request_id=%s detail=%s from=%s to=%s subject=%s",
+            exc.code,
+            exc.reason,
+            request_id,
+            detail,
+            settings.EMAIL_FROM,
+            to_email,
+            subject,
+        )
     except URLError as exc:
-        logger.error("Failed sending email via Resend: %s", exc.reason)
+        logger.error(
+            "Failed sending email via Resend: network_error=%s from=%s to=%s subject=%s",
+            exc.reason,
+            settings.EMAIL_FROM,
+            to_email,
+            subject,
+        )
 
 
 async def send_verify_email(to_email: str, token: str) -> None:
