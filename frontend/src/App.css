@@ -121,3 +121,14 @@ button:disabled {
   margin-top: 1rem;
   text-align: center;
 }
+
+.link-button {
+  margin-top: 0.75rem;
+  background: none !important;
+  border: none !important;
+  color: #646cff;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0 !important;
+  font-size: 0.9rem;
+}

@@ -4,6 +4,7 @@ import {
   getMe,
   login,
   logout,
+  requestPasswordReset,
   register,
   resetPassword,
   verifyEmailToken,
@@ -118,6 +119,7 @@ function ResetPasswordView({ token }: { token: string }) {
 function App() {
   const [user, setUser] = useState<User | null>(null);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [checkingSession, setCheckingSession] = useState(true);
   const rawPathname = window.location.pathname;
   const pathname = rawPathname.replace(/\/+$/, "") || "/";
@@ -138,6 +140,7 @@ function App() {
         if (!cancelled) {
           setUser(me);
           setError("");
+          setSuccess("");
         }
       } catch {
         if (!cancelled) {
@@ -166,11 +169,31 @@ function App() {
     const me = await getMe();
     setUser(me);
     setError("");
+    setSuccess("");
   };
 
   const handleLogout = async () => {
     await logout();
     setUser(null);
+    setSuccess("");
+  };
+
+  const handleForgotPassword = async (email: string) => {
+    await requestPasswordReset(email);
+    setError("");
+  };
+
+  const handleSendResetForCurrentUser = async () => {
+    if (!user) return;
+    try {
+      await requestPasswordReset(user.email);
+      setError("");
+      setSuccess("Password reset email sent to your account.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Could not request password reset.";
+      setSuccess("");
+      setError(msg);
+    }
   };
 
   if (pathname === "/verify-email") {
@@ -198,6 +221,8 @@ function App() {
           <p><strong>Email:</strong> {user.email}</p>
           <p><strong>Status:</strong> {user.is_active ? "Active" : "Inactive"}</p>
         </div>
+        <button onClick={handleSendResetForCurrentUser}>Send Password Reset Email</button>
+        {success && <p className="success">{success}</p>}
         {error && <p className="error">{error}</p>}
         <button onClick={handleLogout} className="logout-btn">Logout</button>
       </div>
@@ -205,9 +230,22 @@ function App() {
   }
 
   return (
-    <div className="container">
+      <div className="container">
       <h1>Auth Demo</h1>
-      <AuthForm onLogin={handleLogin} onRegister={handleRegister} onError={setError} />
+      <AuthForm
+        onLogin={handleLogin}
+        onRegister={handleRegister}
+        onForgotPassword={handleForgotPassword}
+        onError={(message) => {
+          setSuccess("");
+          setError(message);
+        }}
+        onSuccess={(message) => {
+          setError("");
+          setSuccess(message);
+        }}
+      />
+      {success && <p className="success" style={{ marginTop: "1rem" }}>{success}</p>}
       {error && <p className="error" style={{ marginTop: "1rem" }}>{error}</p>}
     </div>
   );

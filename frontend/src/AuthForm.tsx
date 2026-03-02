@@ -3,10 +3,18 @@ import { useState } from "react";
 interface AuthFormProps {
   onLogin: (email: string, password: string) => Promise<void>;
   onRegister: (email: string, password: string) => Promise<void>;
+  onForgotPassword: (email: string) => Promise<void>;
   onError: (error: string) => void;
+  onSuccess: (message: string) => void;
 }
 
-export default function AuthForm({ onLogin, onRegister, onError }: AuthFormProps) {
+export default function AuthForm({
+  onLogin,
+  onRegister,
+  onForgotPassword,
+  onError,
+  onSuccess,
+}: AuthFormProps) {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,6 +33,23 @@ export default function AuthForm({ onLogin, onRegister, onError }: AuthFormProps
       setPassword("");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Something went wrong";
+      onError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      onError("Enter your email first to reset your password.");
+      return;
+    }
+    setLoading(true);
+    try {
+      await onForgotPassword(email);
+      onSuccess("If an account exists for this email, a reset link was sent.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Could not request password reset.";
       onError(msg);
     } finally {
       setLoading(false);
@@ -67,6 +92,16 @@ export default function AuthForm({ onLogin, onRegister, onError }: AuthFormProps
           {loading ? "..." : mode === "login" ? "Sign In" : "Sign Up"}
         </button>
       </form>
+      {mode === "login" && (
+        <button
+          type="button"
+          className="link-button"
+          onClick={handleForgotPassword}
+          disabled={loading}
+        >
+          Forgot password?
+        </button>
+      )}
     </div>
   );
 }

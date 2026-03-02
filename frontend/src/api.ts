@@ -26,10 +26,23 @@ async function readResponseBody(res: Response): Promise<unknown> {
 }
 
 function getErrorMessage(err: unknown): string {
+  const backendCodeToMessage: Record<string, string> = {
+    LOGIN_USER_NOT_VERIFIED:
+      "Your account is not verified yet. We sent a verification email if one wasn't sent in the last hour.",
+    LOGIN_BAD_CREDENTIALS: "Invalid email or password.",
+    INVALID_VERIFY_TOKEN:
+      "This verification link is invalid or expired. Please request a new one.",
+    INVALID_RESET_PASSWORD_TOKEN:
+      "This password reset link is invalid or expired. Please request a new one.",
+  };
+
   if (err instanceof Error) return err.message;
   if (typeof err === "object" && err !== null && "detail" in err) {
     const detail = err.detail as any;
     if (typeof detail === "object" && detail.reason) return detail.reason;
+    if (typeof detail === "string" && backendCodeToMessage[detail]) {
+      return backendCodeToMessage[detail];
+    }
     if (typeof detail === "string") return detail;
   }
   return "Something went wrong";
@@ -116,6 +129,16 @@ export async function resetPassword(token: string, password: string): Promise<vo
     headers: { "Content-Type": "application/json" },
     credentials: "same-origin",
     body: JSON.stringify({ token, password }),
+  });
+  if (!res.ok) throw await buildHttpError(res);
+}
+
+export async function requestPasswordReset(email: string): Promise<void> {
+  const res = await fetch("/auth/forgot-password", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify({ email }),
   });
   if (!res.ok) throw await buildHttpError(res);
 }
