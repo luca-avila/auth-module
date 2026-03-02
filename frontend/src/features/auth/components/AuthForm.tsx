@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type SyntheticEvent } from "react";
 
 import "../../../shared/ui/form.css";
 import "../auth.css";
@@ -23,7 +23,7 @@ export function AuthForm({
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     try {
@@ -110,4 +110,3 @@ export function AuthForm({
     </div>
   );
 }
-
