@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, type SyntheticEvent } from "react";
 
 import { resetPassword } from "../../auth/api/authApi";
 import "../../../shared/ui/form.css";
@@ -16,7 +16,7 @@ export function ResetPasswordView({ token }: ResetPasswordViewProps) {
   const [status, setStatus] = useState<AsyncStatus>("idle");
   const [message, setMessage] = useState("");
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!token) {
@@ -64,4 +64,3 @@ export function ResetPasswordView({ token }: ResetPasswordViewProps) {
     </div>
   );
 }
-
