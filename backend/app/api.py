@@ -42,13 +42,35 @@ def create_app() -> FastAPI:
             started = time.perf_counter()
             response = await call_next(request)
             elapsed_ms = (time.perf_counter() - started) * 1000
+            forwarded_for = request.headers.get("x-forwarded-for", "")
+            client_ip = (
+                forwarded_for.split(",")[0].strip()
+                if forwarded_for
+                else (request.client.host if request.client else "unknown")
+            )
+            user_agent = request.headers.get("user-agent", "unknown")
+            path = request.url.path
+
             logger.info(
-                "%s %s -> %s (%.2fms)",
+                "%s %s -> %s (%.2fms) ip=%s ua=%s",
                 request.method,
-                request.url.path,
+                path,
                 response.status_code,
                 elapsed_ms,
+                client_ip,
+                user_agent,
             )
+
+            if path == "/auth/jwt/login":
+                level = logger.info if response.status_code < 400 else logger.warning
+                level(
+                    "Auth login attempt result=%s status=%s ip=%s ua=%s",
+                    "success" if response.status_code < 400 else "failure",
+                    response.status_code,
+                    client_ip,
+                    user_agent,
+                )
+
             return response
 
     @app.get("/health", tags=["health"])
