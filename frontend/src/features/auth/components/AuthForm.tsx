@@ -1,5 +1,8 @@
 import { useState } from "react";
 
+import "../../../shared/ui/form.css";
+import "../auth.css";
+
 interface AuthFormProps {
   onLogin: (email: string, password: string) => Promise<void>;
   onRegister: (email: string, password: string) => Promise<void>;
@@ -8,7 +11,7 @@ interface AuthFormProps {
   onSuccess: (message: string) => void;
 }
 
-export default function AuthForm({
+export function AuthForm({
   onLogin,
   onRegister,
   onForgotPassword,
@@ -20,7 +23,7 @@ export default function AuthForm({
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     try {
@@ -60,12 +63,14 @@ export default function AuthForm({
     <div className="auth-form">
       <div className="tabs">
         <button
+          type="button"
           className={mode === "login" ? "active" : ""}
           onClick={() => setMode("login")}
         >
           Login
         </button>
         <button
+          type="button"
           className={mode === "register" ? "active" : ""}
           onClick={() => setMode("register")}
         >
@@ -105,3 +110,4 @@ export default function AuthForm({
     </div>
   );
 }
+

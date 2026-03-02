@@ -1,0 +1,62 @@
+.auth-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #555;
+}
+
+.tabs button {
+  flex: 1;
+  padding: 0.8rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+  color: inherit;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.tabs button.active {
+  border-bottom-color: #646cff;
+  color: #646cff;
+}
+
+.error {
+  color: #ff6b6b;
+  text-align: center;
+  padding: 0.75rem;
+  background: rgba(255, 107, 107, 0.1);
+  border-radius: 4px;
+}
+
+.success {
+  color: #51cf66;
+  text-align: center;
+  padding: 0.75rem;
+  background: rgba(81, 207, 102, 0.1);
+  border-radius: 4px;
+}
+
+.action-link {
+  display: block;
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.link-button {
+  margin-top: 0.75rem;
+  background: none !important;
+  border: none !important;
+  color: #646cff;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0 !important;
+  font-size: 0.9rem;
+}
+

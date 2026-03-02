@@ -1,0 +1,46 @@
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+input {
+  padding: 0.7rem;
+  border: 1px solid #555;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  background: #1a1a2e;
+  color: #eee;
+}
+
+input:focus {
+  outline: none;
+  border-color: #646cff;
+  box-shadow: 0 0 4px rgba(100, 108, 255, 0.3);
+}
+
+button {
+  border-radius: 6px;
+  border: 1px solid transparent;
+  padding: 0.7rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+button:not(.tabs button) {
+  background: #646cff;
+  color: #fff;
+  transition: background 0.2s;
+}
+
+button:not(.tabs button):hover:not(:disabled) {
+  background: #535bf2;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+

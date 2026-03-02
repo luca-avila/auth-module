@@ -1,0 +1,20 @@
+.user-card {
+  background: #1a1a2e;
+  padding: 1.5rem;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+}
+
+.user-card p {
+  margin: 0.5rem 0;
+}
+
+.logout-btn {
+  background: #e74c3c !important;
+  margin-top: 1rem;
+}
+
+.logout-btn:hover {
+  background: #c0392b !important;
+}
+
