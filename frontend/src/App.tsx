@@ -118,8 +118,43 @@ function ResetPasswordView({ token }: { token: string }) {
 function App() {
   const [user, setUser] = useState<User | null>(null);
   const [error, setError] = useState("");
-  const pathname = window.location.pathname;
+  const [checkingSession, setCheckingSession] = useState(true);
+  const rawPathname = window.location.pathname;
+  const pathname = rawPathname.replace(/\/+$/, "") || "/";
   const token = new URLSearchParams(window.location.search).get("token") ?? "";
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSession() {
+      // Token pages manage their own calls and should not trigger /users/me bootstrap.
+      if (pathname === "/verify-email" || pathname === "/reset-password") {
+        setCheckingSession(false);
+        return;
+      }
+
+      try {
+        const me = await getMe();
+        if (!cancelled) {
+          setUser(me);
+          setError("");
+        }
+      } catch {
+        if (!cancelled) {
+          setUser(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setCheckingSession(false);
+        }
+      }
+    }
+
+    loadSession();
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
 
   const handleRegister = async (email: string, password: string) => {
     await register(email, password);
@@ -144,6 +179,15 @@ function App() {
 
   if (pathname === "/reset-password") {
     return <ResetPasswordView token={token} />;
+  }
+
+  if (checkingSession) {
+    return (
+      <div className="container">
+        <h1>Auth Demo</h1>
+        <p>Checking session...</p>
+      </div>
+    );
   }
 
   if (user) {
