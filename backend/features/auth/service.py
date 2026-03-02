@@ -1,6 +1,7 @@
 import logging
 import re
 import uuid
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from fastapi import Depends, Request
@@ -15,6 +16,47 @@ from features.auth.email import send_reset_password_email, send_verify_email
 from features.auth.models import User
 
 logger = logging.getLogger(__name__)
+VERIFY_EMAIL_TOKEN_LIFETIME_SECONDS = 3600
+RESET_PASSWORD_TOKEN_LIFETIME_SECONDS = 3600
+VERIFY_EMAIL_RESEND_COOLDOWN_SECONDS = 3600
+_verify_email_last_sent_at: dict[uuid.UUID, datetime] = {}
+
+
+def _cleanup_verify_email_send_tracker(now: datetime) -> None:
+    cutoff = now - timedelta(seconds=VERIFY_EMAIL_RESEND_COOLDOWN_SECONDS)
+    stale_user_ids = [user_id for user_id, sent_at in _verify_email_last_sent_at.items() if sent_at < cutoff]
+    for user_id in stale_user_ids:
+        _verify_email_last_sent_at.pop(user_id, None)
+
+
+def mark_verify_email_sent(user_id: uuid.UUID) -> None:
+    now = datetime.now(UTC)
+    _cleanup_verify_email_send_tracker(now)
+    _verify_email_last_sent_at[user_id] = now
+
+
+def can_send_verify_email(user_id: uuid.UUID) -> bool:
+    now = datetime.now(UTC)
+    _cleanup_verify_email_send_tracker(now)
+    last_sent_at = _verify_email_last_sent_at.get(user_id)
+    if last_sent_at is None:
+        return True
+    return now - last_sent_at >= timedelta(seconds=VERIFY_EMAIL_RESEND_COOLDOWN_SECONDS)
+
+
+async def maybe_resend_verify_email_for_unverified_login(
+    user_manager: BaseUserManager[User, uuid.UUID],
+    user: User,
+    request: Request,
+) -> bool:
+    """Resend verification email if the cooldown window has passed."""
+    if user.is_verified:
+        return False
+    if not can_send_verify_email(user.id):
+        return False
+
+    await user_manager.request_verify(user, request)
+    return True
 
 
 async def get_user_db(session: AsyncSession = Depends(get_async_session)):
@@ -26,7 +68,9 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     """Custom user manager with strong password validation."""
 
     reset_password_token_secret = settings.SECRET_KEY
+    reset_password_token_lifetime_seconds = RESET_PASSWORD_TOKEN_LIFETIME_SECONDS
     verification_token_secret = settings.SECRET_KEY
+    verification_token_lifetime_seconds = VERIFY_EMAIL_TOKEN_LIFETIME_SECONDS
 
     async def validate_password(self, password: str, user: Any) -> None:
         """Validate password strength."""
@@ -69,6 +113,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
         """Hook called after email verification request."""
         logger.info("User %s has requested email verification.", user.id)
         await send_verify_email(user.email, token)
+        mark_verify_email_sent(user.id)
 
 
 async def get_user_manager(user_db: SQLAlchemyUserDatabase = Depends(get_user_db)):

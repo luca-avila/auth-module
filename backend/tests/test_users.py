@@ -1,6 +1,10 @@
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
+
 import features.auth.service as auth_service
+from core.db import async_session_maker
+from features.auth.models import User
 
 USER_EMAIL = "test@example.com"
 USER_PASSWORD = "StrongPass123!"
@@ -20,6 +24,15 @@ async def login_user(client: AsyncClient, email: str = USER_EMAIL, password: str
         "/auth/jwt/login",
         data={"username": email, "password": password},
     )
+
+
+async def mark_user_verified(email: str = USER_EMAIL) -> None:
+    """Helper to set a user as verified in DB for tests."""
+    async with async_session_maker() as session:
+        result = await session.execute(select(User).where(User.email == email))
+        user = result.scalar_one()
+        user.is_verified = True
+        await session.commit()
 
 
 # ── Registration Tests ──────────────────────────────────────────────
@@ -94,12 +107,39 @@ class TestPasswordValidation:
 class TestLogin:
     async def test_login_success(self, client: AsyncClient):
         await register_user(client)
+        await mark_user_verified()
         response = await login_user(client)
         assert response.status_code == 200 or response.status_code == 204
         assert "auth" in response.cookies
 
+    async def test_login_unverified_user_rejected(self, client: AsyncClient):
+        await register_user(client)
+        response = await login_user(client)
+        assert response.status_code == 400
+        assert response.json()["detail"] == "LOGIN_USER_NOT_VERIFIED"
+
+    async def test_login_unverified_user_does_not_resend_verify_within_1h(
+        self, client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+    ):
+        sent_calls: list[tuple[str, str]] = []
+
+        async def fake_send_verify_email(email: str, token: str) -> None:
+            sent_calls.append((email, token))
+
+        monkeypatch.setattr(auth_service, "send_verify_email", fake_send_verify_email)
+
+        register_response = await register_user(client)
+        assert register_response.status_code == 201
+        assert len(sent_calls) == 1
+
+        response = await login_user(client)
+        assert response.status_code == 400
+        assert response.json()["detail"] == "LOGIN_USER_NOT_VERIFIED"
+        assert len(sent_calls) == 1
+
     async def test_login_wrong_password(self, client: AsyncClient):
         await register_user(client)
+        await mark_user_verified()
         response = await login_user(client, password="WrongPassword!")
         assert response.status_code == 400
 
@@ -114,6 +154,7 @@ class TestLogin:
 class TestLogout:
     async def test_logout(self, client: AsyncClient):
         await register_user(client)
+        await mark_user_verified()
         await login_user(client)
         response = await client.post("/auth/jwt/logout")
         assert response.status_code == 200 or response.status_code == 204
@@ -125,6 +166,7 @@ class TestLogout:
 class TestCurrentUser:
     async def test_get_me_authenticated(self, client: AsyncClient):
         await register_user(client)
+        await mark_user_verified()
         await login_user(client)
         response = await client.get("/users/me")
         assert response.status_code == 200
@@ -136,6 +178,7 @@ class TestCurrentUser:
 
     async def test_patch_me(self, client: AsyncClient):
         await register_user(client)
+        await mark_user_verified()
         await login_user(client)
         response = await client.patch("/users/me", json={"email": "new@example.com"})
         # fastapi-users may return 200
@@ -150,6 +193,7 @@ class TestCurrentUser:
 class TestProtectedRoute:
     async def test_protected_route_authenticated(self, client: AsyncClient):
         await register_user(client)
+        await mark_user_verified()
         await login_user(client)
         response = await client.get("/protected-route")
         assert response.status_code == 200
